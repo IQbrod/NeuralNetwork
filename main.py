@@ -23,31 +23,29 @@ D_out = 10      #Dimension Sortie
 x = tor.randn(N, D_in, device=device, dtype=dtype)    #Entrées Aléatoires
 y = tor.randn(N, D_out, device=device, dtype=dtype)   #Sorties Aléatoires
 
-w1 = tor.randn(D_in, H, device=device, dtype=dtype)   #Poids d'entrée vers inter
-w2 = tor.randn(H, D_out, device=device, dtype=dtype)  #Poids d'inter vers sortie
+w1 = tor.randn(D_in, H, device=device, dtype=dtype, requires_grad=True)   #Poids d'entrée vers inter
+w2 = tor.randn(H, D_out, device=device, dtype=dtype, requires_grad=True)  #Poids d'inter vers sortie
 
 learn_rate = 1e-6
 
 it = 0
 while True:             #Iterations d'apprentissage
-    h = x.mm(w1)                #Calcul de valeur inter
-    h_relu = h.clamp(min=0)     #Application relu
-    y_pred = h_relu.mm(w2)      #Calcul valeur finale predite
+    #Forward pass
+    y_pred = x.mm(w1).clamp(min=0).mm(w2)      #Calcul valeur finale predite
 
-    loss = (y_pred - y).pow(2).sum().item() #Calcul de la perte
-    print "STEP",it,":",loss
+    loss = (y_pred - y).pow(2).sum() #Calcul de la perte
+    print "STEP",it,":",loss.item()
 
-    #Backprop des gradients de w1 et w2
-    grad_y_pred = 2.0 * (y_pred - y)
-    grad_w2 = h_relu.t().mm(grad_y_pred)
-    grad_h_relu = grad_y_pred.mm(w2.t())
-    grad_h = grad_h_relu.clone()
-    grad_h[h<0] = 0
-    grad_w1 = x.t().mm(grad_h)
+    #Backprop des gradients
+    loss.backward()
 
     #Mise à jour des poids
-    w1 -= learn_rate * grad_w1
-    w2 -= learn_rate * grad_w2
+    with tor.no_grad():
+        w1 -= learn_rate * w1.grad
+        w2 -= learn_rate * w2.grad
+        #RaZ des gradients
+        w1.grad.zero_()
+        w2.grad.zero_()
 
     #Point d'arret do while
     if loss < K:
