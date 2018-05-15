@@ -30,20 +30,20 @@ learn_rate = 1e-6
 
 it = 0
 while True:             #Iterations d'apprentissage
-    h = x.dot(w1)               #Calcul de valeur inter
-    h_relu = np.maximum(h, 0)   #Apllication relu
-    y_pred = h_relu.dot(w2)     #Calcul valeur finale predite
+    h = x.mm(w1)                #Calcul de valeur inter
+    h_relu = h.clamp(min=0)     #Application relu
+    y_pred = h_relu.mm(w2)      #Calcul valeur finale predite
 
-    loss = np.square(y_pred - y).sum() #Calcul de la perte
+    loss = (y_pred - y).pow(2).sum().item() #Calcul de la perte
     print "STEP",it,":",loss
 
     #Backprop des gradients de w1 et w2
     grad_y_pred = 2.0 * (y_pred - y)
-    grad_w2 = h_relu.T.dot(grad_y_pred)
-    grad_h_relu = grad_y_pred.dot(w2.T)
-    grad_h = grad_h_relu.copy()
+    grad_w2 = h_relu.t().mm(grad_y_pred)
+    grad_h_relu = grad_y_pred.mm(w2.t())
+    grad_h = grad_h_relu.clone()
     grad_h[h<0] = 0
-    grad_w1 = x.T.dot(grad_h)
+    grad_w1 = x.t().mm(grad_h)
 
     #Mise à jour des poids
     w1 -= learn_rate * grad_w1
