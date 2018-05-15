@@ -23,34 +23,37 @@ D_out = 10      #Dimension Sortie
 x = tor.randn(N, D_in, device=device, dtype=dtype)    #Entrées Aléatoires
 y = tor.randn(N, D_out, device=device, dtype=dtype)   #Sorties Aléatoires
 
-w1 = tor.randn(D_in, H, device=device, dtype=dtype, requires_grad=True)   #Poids d'entrée vers inter
-w2 = tor.randn(H, D_out, device=device, dtype=dtype, requires_grad=True)  #Poids d'inter vers sortie
+#Modèle de réseau neuronal
+model = tor.nn.Sequential(
+    tor.nn.Linear(D_in,H),
+    tor.nn.ReLU(),
+    tor.nn.Linear(H,D_out)
+)
+#Definition de la fonction de perte
+loss_fn = tor.nn.MSELoss(size_average=False) #Mean Squared Error
 
 learn_rate = 1e-6
-
 it = 0
 while True:             #Iterations d'apprentissage
     #Forward pass
-    y_pred = x.mm(w1).clamp(min=0).mm(w2)      #Calcul valeur finale predite
+    y_pred = model(x)      #Calcul valeur finale predite
 
-    loss = (y_pred - y).pow(2).sum() #Calcul de la perte
+    loss = loss_fn(y_pred, y) #Calcul de la perte
     print "STEP",it,":",loss.item()
 
+    #RaZ Gradients
+    model.zero_grad()
     #Backprop des gradients
     loss.backward()
 
     #Mise à jour des poids
     with tor.no_grad():
-        w1 -= learn_rate * w1.grad
-        w2 -= learn_rate * w2.grad
-        #RaZ des gradients
-        w1.grad.zero_()
-        w2.grad.zero_()
+        for param in model.parameters():
+            param -= learn_rate * param.grad
 
     #Point d'arret do while
     if loss < K:
         break
-
     #Incrément boucle
     it += 1
 
