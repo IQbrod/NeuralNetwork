@@ -13,12 +13,14 @@ dtype = tor.float
 device = tor.device("cpu")
 
 #Specifications du modèle
-K = 10e-5       #Précision du modèle
+K = 10e-2       #Précision du modèle
 
 N = 64          #Nombre de données
 D_in = 1000     #Dimension Entrée
 H = 100         #Dimension Intermediaire
 D_out = 10      #Dimension Sortie
+
+learn_rate = 1e-6
 
 x = tor.randn(N, D_in, device=device, dtype=dtype)    #Entrées Aléatoires
 y = tor.randn(N, D_out, device=device, dtype=dtype)   #Sorties Aléatoires
@@ -31,8 +33,9 @@ model = tor.nn.Sequential(
 )
 #Definition de la fonction de perte
 loss_fn = tor.nn.MSELoss(size_average=False) #Mean Squared Error
-
-learn_rate = 1e-6
+#Definition de l'optimiseur
+opt = tor.optim.Adam(model.parameters(),lr=learn_rate)
+                     
 it = 0
 while True:             #Iterations d'apprentissage
     #Forward pass
@@ -42,14 +45,12 @@ while True:             #Iterations d'apprentissage
     print "STEP",it,":",loss.item()
 
     #RaZ Gradients
-    model.zero_grad()
+    opt.zero_grad()
     #Backprop des gradients
     loss.backward()
 
     #Mise à jour des poids
-    with tor.no_grad():
-        for param in model.parameters():
-            param -= learn_rate * param.grad
+    opt.step()
 
     #Point d'arret do while
     if loss < K:
